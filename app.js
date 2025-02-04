@@ -68,14 +68,20 @@ app.post('/search', async (req, res) => {
     const queryEmbedding = generateEmbedding(query, gloveEmbeddings);
     // console.log(queryEmbedding);
 
-    const employees = await Employee.find();
-    const embeddings = employees.map(emp => emp.embedding);
-    //  console.log(embeddings);
-    const index = createFaissIndex(embeddings);
-    const searchResults = searchFaissIndex(index, queryEmbedding);
+   // Fetch all employees and departments
+   const employees = await Employee.find();
+   const departments = await Department.find();
 
-    const resultIds = searchResults['labels'];  // Indices of the closest matches
-    const results = resultIds.map(idx => employees[idx]);
+   // Combine embeddings from both collections
+   const allEntities = [...employees, ...departments];
+   const embeddings = allEntities.map(entity => entity.embedding);
+
+   // Create FAISS index and search
+   const index = createFaissIndex(embeddings);
+   const searchResults = searchFaissIndex(index, queryEmbedding);
+
+   const resultIds = searchResults['labels'];
+   const results = resultIds.map(idx => allEntities[idx]);
 
     res.json(results[0]);  // Return the search results
   } catch (error) {
